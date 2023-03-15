@@ -16,3 +16,11 @@ loadInstance = LoadAndPreprocess(protein_train_path, peptide_train_path, train_c
 #input_data(visit_month (0-~36),)
 #target data udprs per month 0,6,12,24
 # ~160 to ~210 peptides types taken per visit 
+#lstm that get timebased visit peptides e.g : 
+#                V1  V2  V3  V4
+#  visit month    0   3    6   12
+#  Pep1           21   45  42  97
+#  Pep2           2    32  44  111 
+#  Pep3           15   51  511  511
+#  PRotein i Val 21   545  65  90
+# targets are udprs  
