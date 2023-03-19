@@ -1,6 +1,6 @@
 # parkinsons-disease-progression-prediction
 predict the Parkinsons disease progression by proteins and peptides  
-
+the goad of this competition is to predict UDPRS for monthes 6 , 12 ,24
 get data from :
 https://www.kaggle.com/competitions/amp-parkinsons-disease-progression-prediction/data
 
