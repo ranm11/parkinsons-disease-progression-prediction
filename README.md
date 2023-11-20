@@ -1,6 +1,6 @@
 # parkinsons-disease-progression-prediction
 predict the Parkinsons disease progression by proteins and peptides  
-the goad of this competition is to predict UDPRS for monthes 6 , 12 ,24
+the goal of this competition is to predict UDPRS for monthes 6 , 12 ,24
 
 
 get data from :
