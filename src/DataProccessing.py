@@ -21,9 +21,10 @@ class DLNetwork:
         self.peptideList = np.empty((0,self.input_len))
         self.updrsList = np.empty((0,4))
         for key in self.peptide_dict:
-            self.peptideList = np.vstack((self.peptideList,self.peptide_dict[key]))
-            self.updrsList = np.vstack((self.updrsList,self.udprs_dict[key]))
-        return {self.peptideList[:self.trainSetNumber] , self.peptideList[self.trainSetNumber:],self.updrsList[:self.trainSetNumber],self.updrsList[self.trainSetNumber:]}    
+            if key in self.peptide_dict and key in self.udprs_dict:
+                self.peptideList = np.vstack((self.peptideList,self.peptide_dict[key]))
+                self.updrsList = np.vstack((self.updrsList,self.udprs_dict[key]))
+        return self.peptideList[:self.trainSetNumber] , self.peptideList[self.trainSetNumber:],self.updrsList[:self.trainSetNumber],self.updrsList[self.trainSetNumber:]    
     
     def DataNormalization(self):
         print("datanormalization")
