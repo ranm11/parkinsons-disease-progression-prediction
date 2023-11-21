@@ -19,6 +19,7 @@ dlNetwork = DLNetwork(common_visits,udprs_dict,peptide_dict)
 peptide_train, peptide_test, updrs_train, updrs_test =dlNetwork.GetTrainAndTestSets()
 Fc_model = dlNetwork.buildFullyConnectedNetwork()
 history = Fc_model.fit(peptide_train, updrs_train, epochs=85, validation_split=0.2, verbose=1)
+dlNetwork.plotLoss(history)
 # prediction model design 
 
 
