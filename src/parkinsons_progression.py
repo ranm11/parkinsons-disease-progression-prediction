@@ -8,7 +8,9 @@ train_clinical_data ="parkinsons-disease-progression-prediction\\amp-parkinsons-
 
 loadInstance = LoadAndPreprocess(protein_train_path, peptide_train_path, train_clinical_data)
 udprs_visits_vector , updrs_visits = loadInstance.GetUdprsData()
+updesPerPatient = loadInstance.GetUpdrsPerPatient(updrs_visits)
 peptide_visits_vector , peptide_visits = loadInstance.GetPeptideData()
+
 #create dictionaries
 peptide_dict = dict(zip(peptide_visits, peptide_visits_vector))
 udprs_dict = dict(zip(updrs_visits, udprs_visits_vector))
@@ -21,6 +23,17 @@ Fc_model = dlNetwork.buildFullyConnectedNetwork()
 history = Fc_model.fit(peptide_train, updrs_train, epochs=85, validation_split=0.2, verbose=1)
 dlNetwork.plotLoss(history)
 # prediction model design 
+
+#lstm per each patient- predict udprs in visit 36
+#create dataset to lstm based on udprs_visits_vector , updrs_visits
+#data set composed of updrs per patient all visits where need to predict last visit
+# 55_0(u1 u2 u3 u4) 
+# 55_3(u1 u2 u3 u4)
+# 55_6(u1 u2 u3 u4)
+# 55_9(u1 u2 u3 u4)
+#...
+# predict  55_36(u1 u2 u3 u4)
+# 20 % of patients are test cases 80 % of patients for training
 
 
 # patients_data array which compose of
