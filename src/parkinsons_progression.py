@@ -8,7 +8,7 @@ train_clinical_data ="parkinsons-disease-progression-prediction\\amp-parkinsons-
 
 loadInstance = LoadAndPreprocess(protein_train_path, peptide_train_path, train_clinical_data)
 udprs_visits_vector , updrs_visits = loadInstance.GetUdprsData()
-updesPerPatient = loadInstance.GetUpdrsPerPatient(updrs_visits)
+updrsPerPatient_train,updrsPerPatient_train_labels, updrsPerPatient_Test,updrsPerPatient_Test_labels = loadInstance.GetUpdrsPerPatient(updrs_visits)
 peptide_visits_vector , peptide_visits = loadInstance.GetPeptideData()
 
 #create dictionaries
@@ -16,12 +16,33 @@ peptide_dict = dict(zip(peptide_visits, peptide_visits_vector))
 udprs_dict = dict(zip(updrs_visits, udprs_visits_vector))
 common_visits = list(set(updrs_visits).intersection(peptide_visits))
 
-print("zevel")  
 dlNetwork = DLNetwork(common_visits,udprs_dict,peptide_dict)
+#employ GRU 
+gru_model = dlNetwork.build_GRU_network(len(updrsPerPatient_train[0]))
+gru_history = gru_model.fit(updrsPerPatient_train,updrsPerPatient_train_labels,epochs=205, validation_split=0.2, verbose=1)
+dlNetwork.plotLoss(gru_history)
+
+
+#print("zevel")  
+#employ fully connected nn
+
 peptide_train, peptide_test, updrs_train, updrs_test =dlNetwork.GetTrainAndTestSets()
 Fc_model = dlNetwork.buildFullyConnectedNetwork()
-history = Fc_model.fit(peptide_train, updrs_train, epochs=85, validation_split=0.2, verbose=1)
-dlNetwork.plotLoss(history)
+fc_history = Fc_model.fit(peptide_train, updrs_train, epochs=85, validation_split=0.2, verbose=1)
+dlNetwork.plotLoss(fc_history)
+
+
+
+#model = Model(inputs=[input1, input2], outputs=output)
+#
+## Compile the model
+#model.compile(optimizer='adam', loss='mean_squared_error', metrics=['mae'])
+#
+## Fit the model to the data
+#model.fit([X1, X2], y, epochs=10, batch_size=32)
+
+
+
 # prediction model design 
 
 #lstm per each patient- predict udprs in visit 36

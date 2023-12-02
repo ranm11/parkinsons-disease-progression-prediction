@@ -61,11 +61,10 @@ class DLNetwork:
         plt.legend()
         plt.show()
 
-        #plt.subplot(212)
-        #acc = history.history['accuracy']
-        #plt.plot(epochs, acc, 'bo', label='Training acc')
-        #plt.title('Training and validation accuracy')
-        #plt.xlabel('Epochs')
-        #plt.ylabel('Loss')
-        #plt.legend()
-        #plt.show()
+    def build_GRU_network(self,updrsInputLen):
+        input = Input(shape=(updrsInputLen,4))
+        gru1 = GRU(20)(input)
+        out_layer = Dense(4,activation='linear')(gru1)
+        model = Model(inputs=input,outputs= out_layer)
+        model.compile(loss='mean_squared_error', optimizer= 'adam', metrics=['mae'])
+        return model

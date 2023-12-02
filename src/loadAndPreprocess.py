@@ -24,11 +24,18 @@ class LoadAndPreprocess:
         self.peptide_visits_vector =  0 # np.empty((0,int(BATCH_LEN/ONLY_POSITIVE_FREQS)))
         self.udprs_vistis_vector = 0
         self.uniq_patient = 0
-        self.Common_Visit_Number_in_Patients = 90
+        self.Common_Visit_Number_in_Patients = 100
         self.final_patient_records_list = 0
+        self.updrs_train_set = 70
 
+    def GetPatientSubset(self,most_Common_visits_indexes,patient_record ):
+        patiend_id = [x.rsplit('_',2)[0] for x in patient_record][0]
+        patient_subset = [f"{patiend_id}_{value}" for  value in most_Common_visits_indexes]
+        return patient_subset
+    
     def GetUpdrsPerPatient(self,unique_visits):
-        self.udprs_vistis_vector = np.empty((0,15))
+        self.udprs_vistis_vector_lists = np.empty((0,12,4))
+        self.final_patient_records_list = np.empty((0,12))
         visitToUdprs_dict = dict(zip(unique_visits, self.udprs_vistis_vector))
         list_of_lists = [[] for _ in range(len(self.uniq_patient))]
         index = 0
@@ -49,10 +56,22 @@ class LoadAndPreprocess:
         for patient_record in filtered_lists:
             patient_visits_record = [x.rsplit('_',2)[1] for x in patient_record]
             if np.isin(most_Common_visits_indexes.astype(str),np.array(patient_visits_record)).all():
-                self.final_patient_records_list=np.vstack((self.final_patient_records_list,patient_record))   
-                #get indexes and vstack only these
-        return self.final_patient_records_list
+                patient_subset = self.GetPatientSubset(most_Common_visits_indexes.astype(str),patient_record)
+                self.final_patient_records_list=np.vstack((self.final_patient_records_list,patient_subset))  
+                updrs_for_patient = [visitToUdprs_dict.get(key) for key in patient_subset] 
+                contains_none = any(element is None for element in updrs_for_patient)
+                if contains_none == True:
+                    continue
+                self.udprs_vistis_vector_lists  = np.vstack((self.udprs_vistis_vector_lists,np.array(updrs_for_patient)[np.newaxis,:,:]))
+        self.UpdrsDataNormalization()
+        return self.udprs_vistis_vector_lists[:self.updrs_train_set,:-1,:], self.udprs_vistis_vector_lists[:self.updrs_train_set,-1:,:] , self.udprs_vistis_vector_lists[self.updrs_train_set:,:-1,:] ,self.udprs_vistis_vector_lists[self.updrs_train_set:,-1:,:]
         #listOfVisitPerPatient = 
+
+    def UpdrsDataNormalization(self):
+        #mean = (self.udprs_vistis_vector_lists).mean(axis=0)
+        self.udprs_vistis_vector_lists = self.udprs_vistis_vector_lists / 25
+        # std = Normalized_Data.std(axis=0)
+        # self.udprs_vistis_vector_lists = Normalized_Data/std
 
     def GetUdprsData(self):
         df = pd.read_csv(self.clinical_data_path)
