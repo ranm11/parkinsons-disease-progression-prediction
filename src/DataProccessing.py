@@ -2,7 +2,7 @@
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import LSTM, GRU , Embedding, Conv1D , MaxPooling1D
-from tensorflow.keras.layers import Dropout
+from tensorflow.keras.layers import Dropout , concatenate
 from tensorflow.keras import Input , Model
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,6 +19,9 @@ class DLNetwork:
         self.updrsList = 0
         self.peptideListNormalized = 0
 
+    ############################################################
+    #this function return peptide list and its coresponding updrs list    
+    ############################################################
     def GetTrainAndTestSets(self):
         self.peptideList = np.empty((0,self.input_len))
         self.updrsList = np.empty((0,4))
@@ -67,4 +70,25 @@ class DLNetwork:
         out_layer = Dense(4,activation='linear')(gru1)
         model = Model(inputs=input,outputs= out_layer)
         model.compile(loss='mean_squared_error', optimizer= 'adam', metrics=['mae'])
+        return model
+
+    def build_multi_input_network(self,updrsInputLen):
+        gru_input = Input(shape=(updrsInputLen,4))
+        gru_out_layer = GRU(20)(gru_input)
+
+        fc_input = Input(shape=(self.input_len,),name="peptides_inputs")
+        layer1 = Dense(units = 800,activation = 'relu')(fc_input) 
+        layer1 = Dropout(0.1)(layer1)
+        layer1 = Dense(units=500, activation='relu')(layer1)
+        layer1 = Dropout(0.1)(layer1)
+        fc_output_layer = Dense(units  = 128, activation='sigmoid')(layer1)
+
+        #layers concatenation
+        concatenated = concatenate([gru_out_layer, fc_output_layer]) 
+
+        # Output layer
+        #output = Dense(4, activation='linear')(concatenated)
+        output = Dense(4, activation='linear')(concatenated)
+        model = Model(inputs=[gru_input, fc_input], outputs=output)
+        model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
         return model

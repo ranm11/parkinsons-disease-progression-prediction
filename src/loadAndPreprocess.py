@@ -24,9 +24,20 @@ class LoadAndPreprocess:
         self.peptide_visits_vector =  0 # np.empty((0,int(BATCH_LEN/ONLY_POSITIVE_FREQS)))
         self.udprs_vistis_vector = 0
         self.uniq_patient = 0
-        self.Common_Visit_Number_in_Patients = 100
+        self.Min_NOF_Patients_required = 120  #100
         self.final_patient_records_list = 0
-        self.updrs_train_set = 70
+        self.updrs_train_set = 65  #28
+        self.peptide_vector_for_last_visit=0
+        self.peptide_dict=0
+
+    def GetPeptidesVisitsHistogram(self):
+        peptide_keys_list = list(self.peptide_dict.keys())
+        #peptide_keys_list_0 = np.array([x for x in peptide_keys_list if x.endswith('_0')])
+        flattened_list_nums = [x.rsplit('_',2)[1] for x in peptide_keys_list]
+        visit_min_val = min(flattened_list_nums)
+        visit_max_val = max(flattened_list_nums)
+        histogram = np.array([flattened_list_nums.count(str(i)) for i in range(int(visit_min_val), int(visit_max_val) + 1)])
+        return histogram
 
     def GetPatientSubset(self,most_Common_visits_indexes,patient_record ):
         patiend_id = [x.rsplit('_',2)[0] for x in patient_record][0]
@@ -34,8 +45,10 @@ class LoadAndPreprocess:
         return patient_subset
     
     def GetUpdrsPerPatient(self,unique_visits):
-        self.udprs_vistis_vector_lists = np.empty((0,12,4))
-        self.final_patient_records_list = np.empty((0,12))
+        NOF_VISITS = 9   #12 
+        self.udprs_vistis_vector_lists = np.empty((0,NOF_VISITS,4))
+        self.peptide_vector_for_last_visit = np.empty((0,968))
+        self.final_patient_records_list = np.empty((0,NOF_VISITS))
         visitToUdprs_dict = dict(zip(unique_visits, self.udprs_vistis_vector))
         list_of_lists = [[] for _ in range(len(self.uniq_patient))]
         index = 0
@@ -50,7 +63,8 @@ class LoadAndPreprocess:
         visit_min_val = min(flattened_list_nums)
         visit_max_val = max(flattened_list_nums)
         histogram = np.array([flattened_list_nums.count(str(i)) for i in range(int(visit_min_val), int(visit_max_val) + 1)])
-        most_Common_visits_indexes = np.where(histogram > self.Common_Visit_Number_in_Patients)[0]
+        peptide_histogram = self.GetPeptidesVisitsHistogram()
+        most_Common_visits_indexes = np.where(histogram > self.Min_NOF_Patients_required)[0]
         # return onlt arrays from flattened_list which are subsets of most_Common_visits_indexes
         #subarrays = [arr for arr in np.array(filtered_lists) if np.isin(arr, most_Common_visits_indexes).all()]
         for patient_record in filtered_lists:
@@ -60,12 +74,23 @@ class LoadAndPreprocess:
                 self.final_patient_records_list=np.vstack((self.final_patient_records_list,patient_subset))  
                 updrs_for_patient = [visitToUdprs_dict.get(key) for key in patient_subset] 
                 contains_none = any(element is None for element in updrs_for_patient)
-                if contains_none == True:
+                if contains_none == True or patient_subset[-1] not in self.peptide_dict:
                     continue
                 self.udprs_vistis_vector_lists  = np.vstack((self.udprs_vistis_vector_lists,np.array(updrs_for_patient)[np.newaxis,:,:]))
+                self.peptide_vector_for_last_visit = np.vstack((self.peptide_vector_for_last_visit,self.peptide_dict[patient_subset[-1]]))
         self.UpdrsDataNormalization()
+        #visit_subset is (0,6,12,24,36,48)
         return self.udprs_vistis_vector_lists[:self.updrs_train_set,:-1,:], self.udprs_vistis_vector_lists[:self.updrs_train_set,-1:,:] , self.udprs_vistis_vector_lists[self.updrs_train_set:,:-1,:] ,self.udprs_vistis_vector_lists[self.updrs_train_set:,-1:,:]
-        #listOfVisitPerPatient = 
+
+    def GetpeptidePerLastVisit(self):
+        self.PeptideDataNormalization()
+        return self.peptide_vector_for_last_visit[:self.updrs_train_set],self.peptide_vector_for_last_visit[self.updrs_train_set:]
+    
+    def PeptideDataNormalization(self):
+        mean = (self.peptide_vector_for_last_visit).mean(axis=0)
+        Normalized_train_Data = self.peptide_vector_for_last_visit - mean
+        std = Normalized_train_Data.std(axis=0)
+        self.peptide_vector_for_last_visit = Normalized_train_Data/std
 
     def UpdrsDataNormalization(self):
         #mean = (self.udprs_vistis_vector_lists).mean(axis=0)
@@ -103,6 +128,7 @@ class LoadAndPreprocess:
             visit_peptide_vector = self.GetPeptideDataPerVisit(visit_data)  
             self.peptide_visits_vector = np.vstack((self.peptide_visits_vector , visit_peptide_vector))
         
+        self.peptide_dict = dict(zip(unique_visits, self.peptide_visits_vector))
         return self.peptide_visits_vector , unique_visits  
 
     #this function or another should also get udprs vals in adequate to peptides values
@@ -115,3 +141,13 @@ class LoadAndPreprocess:
             peptide_vector[peptide_idx] = value
             #print (peptide)
         return peptide_vector
+    
+    def GetMultiInputDataSets(self,peptide_dict,udprs_dict,common_visits):
+        self.peptideList_for_multi_input = np.empty((0,len(peptide_dict[common_visits[0]])))
+        self.updrsList = np.empty((0,4))
+        for key in peptide_dict:
+            if key in peptide_dict and key in udprs_dict:
+                self.peptideList = np.vstack((self.peptideList,self.peptide_dict[key]))
+                self.updrsList = np.vstack((self.updrsList,self.udprs_dict[key]))
+        self.DataNormalization()
+        return self.peptideListNormalized[:self.trainSetNumber] , self.peptideListNormalized[self.trainSetNumber:],self.updrsList[:self.trainSetNumber],self.updrsList[self.trainSetNumber:]    

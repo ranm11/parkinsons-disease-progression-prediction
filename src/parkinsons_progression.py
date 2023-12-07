@@ -1,14 +1,20 @@
 from loadAndPreprocess import LoadAndPreprocess
 from DataProccessing import DLNetwork
-
+from enum import Enum
 
 protein_train_path = "parkinsons-disease-progression-prediction\\amp-parkinsons-disease-progression-prediction\\train_proteins.csv"
 peptide_train_path = "parkinsons-disease-progression-prediction\\amp-parkinsons-disease-progression-prediction\\train_peptides.csv"
 train_clinical_data ="parkinsons-disease-progression-prediction\\amp-parkinsons-disease-progression-prediction\\train_clinical_data.csv"
 
+class Mode(Enum):
+    GRU = 1
+    FULLY_CONNECTED = 2
+    MULTI_INPUT = 3
+
+
 loadInstance = LoadAndPreprocess(protein_train_path, peptide_train_path, train_clinical_data)
 udprs_visits_vector , updrs_visits = loadInstance.GetUdprsData()
-updrsPerPatient_train,updrsPerPatient_train_labels, updrsPerPatient_Test,updrsPerPatient_Test_labels = loadInstance.GetUpdrsPerPatient(updrs_visits)
+
 peptide_visits_vector , peptide_visits = loadInstance.GetPeptideData()
 
 #create dictionaries
@@ -17,19 +23,42 @@ udprs_dict = dict(zip(updrs_visits, udprs_visits_vector))
 common_visits = list(set(updrs_visits).intersection(peptide_visits))
 
 dlNetwork = DLNetwork(common_visits,udprs_dict,peptide_dict)
-#employ GRU 
-gru_model = dlNetwork.build_GRU_network(len(updrsPerPatient_train[0]))
-gru_history = gru_model.fit(updrsPerPatient_train,updrsPerPatient_train_labels,epochs=205, validation_split=0.2, verbose=1)
-dlNetwork.plotLoss(gru_history)
 
 
-#print("zevel")  
-#employ fully connected nn
+mode = Mode.MULTI_INPUT
+updrsPerPatient_train,updrsPerPatient_train_labels, updrsPerPatient_Test,updrsPerPatient_Test_labels = loadInstance.GetUpdrsPerPatient(updrs_visits)
 
-peptide_train, peptide_test, updrs_train, updrs_test =dlNetwork.GetTrainAndTestSets()
-Fc_model = dlNetwork.buildFullyConnectedNetwork()
-fc_history = Fc_model.fit(peptide_train, updrs_train, epochs=85, validation_split=0.2, verbose=1)
-dlNetwork.plotLoss(fc_history)
+#################################################################################################
+##  This network Predict updrs for Visit_60 both by priod progression of updrs and peptide abundance
+################################################################################################
+
+if(mode==Mode.MULTI_INPUT):
+    #updrs_train_in, peptide_train_in, updrs_labels_out,updrs_test_in,peptide_test_in,updrs_labels_out = loadInstance.GetMultiInputDataSets(peptide_dict,udprs_dict,common_visits)
+    peptide_train,peptide_tests = loadInstance.GetpeptidePerLastVisit()
+    multi_input_model = dlNetwork.build_multi_input_network(len(updrsPerPatient_train[0]))
+    multi_input_history = multi_input_model.fit([updrsPerPatient_train,peptide_train],updrsPerPatient_train_labels,epochs=900, batch_size=32)
+    dlNetwork.plotLoss(multi_input_history)
+    multi_input_model.predict([updrsPerPatient_Test,peptide_tests])
+
+###################################################################################
+##  This network Predict updrs for Visit_60 by prior parkinson updrs progression V_0,V_3.....V_48
+##################################################################################
+
+if(mode==Mode.GRU):
+    
+    gru_model = dlNetwork.build_GRU_network(len(updrsPerPatient_train[0]))
+    gru_history = gru_model.fit(updrsPerPatient_train,updrsPerPatient_train_labels,epochs=205, validation_split=0.2, verbose=1)
+    dlNetwork.plotLoss(gru_history)
+
+###################################################################################
+##  This network Predict updrs for all patian visits by peptide abundance vector data
+##################################################################################
+
+if(mode==Mode.FULLY_CONNECTED):
+    peptide_train, peptide_test, updrs_train, updrs_test =dlNetwork.GetTrainAndTestSets()
+    Fc_model = dlNetwork.buildFullyConnectedNetwork()
+    fc_history = Fc_model.fit(peptide_train, updrs_train, epochs=85, validation_split=0.2, verbose=1)
+    dlNetwork.plotLoss(fc_history)
 
 
 
