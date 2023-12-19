@@ -124,6 +124,7 @@ class LoadAndPreprocess:
     def GetUdprsData(self):
         df = pd.read_csv(self.clinical_data_path)
         df.fillna(0, inplace=True)
+        #df = df.dropna()
         unique_visits = df['visit_id'].unique()
         self.udprs_vistis_vector = np.empty((0,4))
         self.uniq_patient = np.empty((0,1))
@@ -140,7 +141,7 @@ class LoadAndPreprocess:
             self.updrs_unique_visits = np.vstack((self.updrs_unique_visits , uniq_visit))
             self.visit_updrs_dict[uniq_visit] = updrs
         self.uniq_patient =  np.unique(self.uniq_patient)
-        return self.udprs_vistis_vector , self.updrs_unique_visits[:,0] , self.visit_updrs_dict
+        return  self.updrs_unique_visits[:,0] 
 
     def GetPeptideData(self):
         df = pd.read_csv(self.peptide_train_path)
@@ -155,7 +156,7 @@ class LoadAndPreprocess:
             self.peptide_visits_vector = np.vstack((self.peptide_visits_vector , visit_peptide_vector))
         
         self.peptide_dict = dict(zip(unique_visits, self.peptide_visits_vector))
-        return self.peptide_visits_vector , unique_visits  
+        return self.peptide_visits_vector , unique_visits  ,self.peptide_dict
 
     #this function or another should also get udprs vals in adequate to peptides values
     def GetPeptideDataPerVisit(self,visit_data):
@@ -167,6 +168,28 @@ class LoadAndPreprocess:
             peptide_vector[peptide_idx] = value
             #print (peptide)
         return peptide_vector
+    
+    ############################################################
+    #this function works on peptide dictionary and updrs dictionary and return training and test set for peptide -> updrs 
+    ############################################################
+    def GetTrainAndTestSets(self,common_visits):
+        self.FCtrainSetNumber = 400
+        self.peptideList = np.empty((0,len(self.peptide_dict[common_visits[0]])))
+        self.updrsList = np.empty((0,4))
+        self.peptideListTest = np.empty((0,len(self.peptide_dict[common_visits[0]])))
+        self.updrsListTest = np.empty((0,4))
+        for key in self.peptide_dict:
+            if key in self.peptide_dict and key in self.visit_updrs_dict:
+                if key.endswith('_48'):
+                    #set to test dataset
+                    self.peptideListTest = np.vstack((self.peptideListTest,self.peptide_dict[key]))
+                    self.updrsListTest = np.vstack((self.updrsListTest,self.visit_updrs_dict[key]))
+                else:
+                    self.peptideList = np.vstack((self.peptideList,self.peptide_dict[key]))
+                    self.updrsList = np.vstack((self.updrsList,self.visit_updrs_dict[key]))
+        peptideListNormalizedTrain = self.Normalize(self.peptideList)
+        peptideListNormalizedTest = self.Normalize(self.peptideListTest)
+        return peptideListNormalizedTrain , peptideListNormalizedTest ,self.updrsList/25,self.updrsListTest/25    
     
     def GetMultiInputDataSets(self,peptide_dict,udprs_dict,common_visits):
         self.peptideList_for_multi_input = np.empty((0,len(peptide_dict[common_visits[0]])))

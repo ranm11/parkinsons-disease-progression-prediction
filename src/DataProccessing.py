@@ -8,13 +8,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class DLNetwork:
-    def __init__(self,common_visits,udprs_dict,peptide_dict):
+    def __init__(self,input_len):
         #Visit Data Clas Array sorted by visir month
-        self.common_visits=common_visits
-        self.udprs_dict=udprs_dict
-        self.peptide_dict=peptide_dict
-        self.input_len = len(peptide_dict[common_visits[0]])    #peptide input vector len
-        self.trainSetNumber = 800
+        self.input_len = input_len    #peptide input vector len
+        #self.trainSetNumber = 800
         self.peptideList = 0
         self.updrsList = 0
         self.peptideListNormalized = 0
@@ -22,22 +19,22 @@ class DLNetwork:
     ############################################################
     #this function return peptide list and its coresponding updrs list    
     ############################################################
-    def GetTrainAndTestSets(self):
-        self.peptideList = np.empty((0,self.input_len))
-        self.updrsList = np.empty((0,4))
-        for key in self.peptide_dict:
-            if key in self.peptide_dict and key in self.udprs_dict:
-                self.peptideList = np.vstack((self.peptideList,self.peptide_dict[key]))
-                self.updrsList = np.vstack((self.updrsList,self.udprs_dict[key]))
-        self.DataNormalization()
-        return self.peptideListNormalized[:self.trainSetNumber] , self.peptideListNormalized[self.trainSetNumber:],self.updrsList[:self.trainSetNumber]/25,self.updrsList[self.trainSetNumber:]/25    
+    # def GetTrainAndTestSets(self):
+    #     self.peptideList = np.empty((0,self.input_len))
+    #     self.updrsList = np.empty((0,4))
+    #     for key in self.peptide_dict:
+    #         if key in self.peptide_dict and key in self.udprs_dict:
+    #             self.peptideList = np.vstack((self.peptideList,self.peptide_dict[key]))
+    #             self.updrsList = np.vstack((self.updrsList,self.udprs_dict[key]))
+    #     self.DataNormalization()
+    #     return self.peptideListNormalized[:self.trainSetNumber] , self.peptideListNormalized[self.trainSetNumber:],self.updrsList[:self.trainSetNumber]/25,self.updrsList[self.trainSetNumber:]/25    
     
-    def DataNormalization(self):
-        print("datanormalization")
-        mean = (self.peptideList).mean(axis=0)
-        Normalized_train_Data = self.peptideList - mean
-        std = Normalized_train_Data.std(axis=0)
-        self.peptideListNormalized = Normalized_train_Data/std
+    # def DataNormalization(self):
+    #     print("datanormalization")
+    #     mean = (self.peptideList).mean(axis=0)
+    #     Normalized_train_Data = self.peptideList - mean
+    #     std = Normalized_train_Data.std(axis=0)
+    #     self.peptideListNormalized = Normalized_train_Data/std
 
     def buildFullyConnectedNetwork(self):
         inputs = Input(shape=(self.input_len,),name="peptides_inputs")
@@ -66,7 +63,7 @@ class DLNetwork:
 
     def build_GRU_network(self,updrsInputLen):
         input = Input(shape=(updrsInputLen,4))
-        gru1 = GRU(20)(input)
+        gru1 = GRU(3)(input)
         out_layer = Dense(4,activation='linear')(gru1)
         model = Model(inputs=input,outputs= out_layer)
         model.compile(loss='mean_squared_error', optimizer= 'adam', metrics=['mae'])
