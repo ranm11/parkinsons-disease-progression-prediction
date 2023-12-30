@@ -121,10 +121,13 @@ class LoadAndPreprocess:
         # std = Normalized_Data.std(axis=0)
         # self.udprs_vistis_vector_lists = Normalized_Data/std
 
-    def GetUdprsData(self):
+    def GetUdprsData(self, mode):
         df = pd.read_csv(self.clinical_data_path)
-        df.fillna(0, inplace=True)
-        #df = df.dropna()
+        if (mode == 2 ):
+            df = df.dropna()
+        else:
+            df.fillna(0, inplace=True)
+
         unique_visits = df['visit_id'].unique()
         self.udprs_vistis_vector = np.empty((0,4))
         self.uniq_patient = np.empty((0,1))
@@ -190,6 +193,7 @@ class LoadAndPreprocess:
         peptideListNormalizedTrain = self.Normalize(self.peptideList)
         peptideListNormalizedTest = self.Normalize(self.peptideListTest)
         return peptideListNormalizedTrain , peptideListNormalizedTest ,self.updrsList/25,self.updrsListTest/25    
+        #return self.peptideList , self.peptideListTest ,self.updrsList,self.updrsListTest  
     
     def GetMultiInputDataSets(self,peptide_dict,udprs_dict,common_visits):
         self.peptideList_for_multi_input = np.empty((0,len(peptide_dict[common_visits[0]])))

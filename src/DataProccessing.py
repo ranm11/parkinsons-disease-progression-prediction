@@ -4,6 +4,8 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import LSTM, GRU , Embedding, Conv1D , MaxPooling1D
 from tensorflow.keras.layers import Dropout , concatenate
 from tensorflow.keras import Input , Model
+from tensorflow.keras import regularizers
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -16,26 +18,7 @@ class DLNetwork:
         self.updrsList = 0
         self.peptideListNormalized = 0
 
-    ############################################################
-    #this function return peptide list and its coresponding updrs list    
-    ############################################################
-    # def GetTrainAndTestSets(self):
-    #     self.peptideList = np.empty((0,self.input_len))
-    #     self.updrsList = np.empty((0,4))
-    #     for key in self.peptide_dict:
-    #         if key in self.peptide_dict and key in self.udprs_dict:
-    #             self.peptideList = np.vstack((self.peptideList,self.peptide_dict[key]))
-    #             self.updrsList = np.vstack((self.updrsList,self.udprs_dict[key]))
-    #     self.DataNormalization()
-    #     return self.peptideListNormalized[:self.trainSetNumber] , self.peptideListNormalized[self.trainSetNumber:],self.updrsList[:self.trainSetNumber]/25,self.updrsList[self.trainSetNumber:]/25    
     
-    # def DataNormalization(self):
-    #     print("datanormalization")
-    #     mean = (self.peptideList).mean(axis=0)
-    #     Normalized_train_Data = self.peptideList - mean
-    #     std = Normalized_train_Data.std(axis=0)
-    #     self.peptideListNormalized = Normalized_train_Data/std
-
     def buildFullyConnectedNetwork(self):
         inputs = Input(shape=(self.input_len,),name="peptides_inputs")
         layer1 = Dense(units = 800,activation = 'relu')(inputs) 
@@ -51,7 +34,7 @@ class DLNetwork:
     
     def plotLoss(self,history):
         plt.figure()
-        plt.subplot(211)
+        #plt.subplot(111)
         loss = history.history['loss']
         epochs = range(1, len(loss) + 1)
         plt.plot(epochs, loss, 'bo', label='Training loss')
@@ -63,7 +46,7 @@ class DLNetwork:
 
     def build_GRU_network(self,updrsInputLen):
         input = Input(shape=(updrsInputLen,4))
-        gru1 = GRU(3)(input)
+        gru1 = GRU(8)(input)
         out_layer = Dense(4,activation='linear')(gru1)
         model = Model(inputs=input,outputs= out_layer)
         model.compile(loss='mean_squared_error', optimizer= 'adam', metrics=['mae'])
@@ -95,17 +78,19 @@ class DLNetwork:
         UPDRS_LEN = 4
         PROTEIN_VEC_LEN = 227
         gru_updrs_input = Input(shape=(updrsInputLen,4))
-        gru_updrs_out_layer = GRU(20)(gru_updrs_input)
+        gru_updrs_out_layer = GRU(10)(gru_updrs_input)
         #protein GRU
         gru_protein_input = Input(shape=(proteinInputLen,227))
-        gru_protein_out_layer = GRU(20)(gru_protein_input)
+        gru_protein_out_layer = GRU(5)(gru_protein_input)
         #FC - NN
         fc_input = Input(shape=(self.input_len,),name="peptides_inputs")
         layer1 = Dense(units = 800,activation = 'relu')(fc_input) 
         layer1 = Dropout(0.1)(layer1)
-        layer1 = Dense(units=500, activation='relu')(layer1)
+        #layer1 = regularizers.L2(0.01)(layer1)
+        layer1 = Dense(units=500, activation='relu',kernel_regularizer=regularizers.l2(0.01))(layer1)
         layer1 = Dropout(0.1)(layer1)
-        fc_output_layer = Dense(units  = 128, activation='sigmoid')(layer1)
+        #layer1 = regularizers.L2(0.01)(layer1)
+        fc_output_layer = Dense(units  = 128, activation='sigmoid',kernel_regularizer=regularizers.l2(0.01))(layer1)
 
         #layers concatenation
         concatenated = concatenate([gru_updrs_out_layer,gru_protein_out_layer, fc_output_layer]) 
