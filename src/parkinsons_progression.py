@@ -62,10 +62,10 @@ if(mode==Mode.GRU):
     updrsPerPatient_train,updrsPerPatient_train_labels, updrsPerPatient_Test,updrsPerPatient_Test_labels = loadInstance.GetUpdrsPerPatient(updrs_visits)
     gru_model = dlNetwork.build_GRU_network(len(updrsPerPatient_train[0]))
     plot_model(gru_model, to_file='gru_model_plot.png', show_shapes=True, show_layer_names=True)
-    gru_history = gru_model.fit(updrsPerPatient_train,updrsPerPatient_train_labels,epochs=205, validation_split=0.2, verbose=1)
+    gru_history = gru_model.fit(updrsPerPatient_train,updrsPerPatient_train_labels,epochs=205, validation_split=0, verbose=1)
     dlNetwork.plotLoss(gru_history)
-    gru_model.predict(updrsPerPatient_Test)
-    updrsPerPatient_Test_labels
+    gru_model.predict(updrsPerPatient_Test)*25
+    updrsPerPatient_Test_labels*25
 
 ###################################################################################
 ##  This network Predict updrs for all patian visits by peptide abundance vector data
@@ -76,7 +76,7 @@ if(mode==Mode.FULLY_CONNECTED):
     peptide_train, peptide_test, updrs_train, updrs_test =loadInstance.GetTrainAndTestSets(common_visits)
     Fc_model = dlNetwork.buildFullyConnectedNetwork()
     plot_model(Fc_model, to_file='FC_model_plot.png', show_shapes=True, show_layer_names=True)
-    fc_history = Fc_model.fit(peptide_train, updrs_train, epochs=85, validation_split=0.2, verbose=1)
+    fc_history = Fc_model.fit(peptide_train, updrs_train, epochs=85, validation_split=0, verbose=1)
     dlNetwork.plotLoss(fc_history)
     Fc_model.predict(peptide_test[:10])
     updrs_test[:10]
